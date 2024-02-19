@@ -1,0 +1,9 @@
+# script environment
+.env
+
+# source code for external packages
+/sources/**
+# things created by above
+/output/**
+# working tree
+/working/**
