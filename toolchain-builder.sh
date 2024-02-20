@@ -4,7 +4,7 @@ set -euo pipefail
 
 # export TARGET_BOARD=bcm27xx
 # export TARGET_SUBTARGET=bcm2708
-export TARGET_TRIPLET="arm-linux-gnueabihf-"
+export TARGET_TRIPLET="arm-rpi-linux-gnueabihf-"
 # export TARGET_ARCH="armv6kz+fp"
 # export CPU_TYPE="arm1176jzf-s+vfp"
 export TGT_FLAGS="--with-float=hard"
@@ -37,14 +37,12 @@ done
 wait
 
 # **** Get Raspberry Pi headers ****
-(
     [[ -d raspberry-kernel ]] || git clone https://github.com/raspberrypi/linux raspberry-kernel
     cd raspberry-kernel
     KERNEL=kernel make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- INSTALL_HDR_PATH="${CROSS_PREFIX}/${OWRT_PAIR}" bcmrpi_defconfig
     KERNEL=kernel make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- INSTALL_HDR_PATH="${CROSS_PREFIX}/${OWRT_PAIR}" headers_install
 
     echo -e "\n\nTarget headers installed\n\n"
-) &
 # **********************************
 
 # **** GNU binutils (native) ****
