@@ -30,12 +30,6 @@ wget -N https://ftpmirror.gnu.org/mpfr/mpfr-4.2.1.tar.gz &
 wget -N https://ftpmirror.gnu.org/gmp/gmp-6.3.0.tar.gz &
 wget -N https://ftpmirror.gnu.org/mpc/mpc-1.3.1.tar.gz &
 
-wait
-for ball in *.tar.gz; do
-    tar -xvzvf $ball -i --keep-newer-files &
-done
-wait
-
 # **** Get Raspberry Pi headers ****
     [[ -d raspberry-kernel ]] || git clone https://github.com/raspberrypi/linux raspberry-kernel
     cd raspberry-kernel
@@ -45,20 +39,27 @@ wait
     echo -e "\n\nTarget headers installed\n\n"
 # **********************************
 
+wait
+for tball in *.tar.gz; do
+    tar -xvzvf $tball -i --keep-newer-files &
+done
+wait
+
 # **** GNU binutils (native) ****
 mkdir ${BUILD_DIR}/binutils -p ; cd ${BUILD_DIR}/binutils
 echo -e "\n\nMoved into $PWD\n\n"
 # ${SOURCE_DIR}/binutils-*/configure --prefix=${NATIVE_PREFIX} --disable-nls --disable-werror --disable-multilib
-${SOURCE_DIR}/binutils-*/configure --prefix=${NATIVE_PREFIX}
+${SOURCE_DIR}/binutils-*/configure --prefix=${NATIVE_PREFIX} --enable-werror=no
 
+# TODO: Make this a function?
 if (make -j$(nproc) -Orecurse); then
     echo -e "\n\nmake binutils (native) finished (first try!)\n\n"
-elif (make -j1 -d V=sc); then
+elif (read -p "'make binutils' (native) problem with first attempt" ; make -j1 -d); then
     echo -e "\n\nmake binutils (native) finished (second try)\n\n"
 else
-    echo "Failure!"
+    echo "'make binutils' (native) Failure!"
 fi
-make install
+make install || make -d install || (echo "'make install' failed (binutils native)" ; return 2 )
 # *******************************
 
 # **** GNU Compilier Collection (native) ****
@@ -71,14 +72,32 @@ mkdir ${BUILD_DIR}/gcc -p ; cd ${BUILD_DIR}/gcc
 ${SOURCE_DIR}/gcc-*/configure --prefix=${NATIVE_PREFIX}
 echo -e "\n\nFinished configuring gcc\n\n"
 
+(
+    Colors=('128;000;000' '255;000;000' '255;128;000' '255;255;000' '000;255;000' '000;255;255' '000;128;255' '000;000;255' '000;000;128')
+    while true; do
+    for i in {0..8}; do
+        echo -n $'\x1B[38;2;'${Colors[$i]}"m"
+        echo -n ".  "$'\x08'
+        sleep 5
+        echo -n ".  "$'\x08'
+        sleep 5    
+    done
+    echo -n $'\x0D\x1B[0m'
+    done
+)&
+
 if (make -j$(nproc) -Orecurse); then
+    kill $!
     echo -e "\n\nFinished building native gcc(first try!)\n\n"
-elif (make -j1 -d V=sc); then
+elif (read =p "'make gcc' (native) problem with first attempt" ; make -j1 -d V=sc); then
+    kill $!
     echo -e "\n\nFinished building native gcc (second try)\n\n"
 else
-    echo "Failure!"
+    kill $!
+    echo "'make gcc' (native) Failure!"
+    return 2
 fi
-make install
+make install || make -d install || echo "'make install' failed (gcc native)
 # *******************************************
 # done with host system
 
@@ -89,10 +108,11 @@ echo "Moved into $PWD"
 ${SOURCE_DIR}/binutils-*/configure --prefix=${CROSS_PREFIX} --target=${TARGET_TRIPLET} --with-sysroot
 if (make -j$(nproc) -Orecurse); then
     echo -e "\n\nmake binutils (cross) finished (first try!)\n\n"
-elif (make -j1 -d V=sc); then
+elif (read -p "'make binutils' (cross) problem with first attempt" ; make -j1 -d V=sc); then
     echo -e "\n\nmake binutils (cross) finished (second try)\n\n"
 else
-    echo "Failure!"
+    echo "'make binutils' (cross) Failure!"
+    return 2
 fi
 make install
 # should be in prefix/target/bin
