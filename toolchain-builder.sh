@@ -45,7 +45,10 @@ wait -f
 ) &
 # **********************************
 
-(cat *.tar.gz | tar -xvzvf - -i --keep-newer-files) &
+# (cat *.tar.gz | tar -xvzvf - -i --keep-newer-files) &
+for ball in *.tar.gz; do
+    tar -xvzvf $ball -i --keep-newer-files &
+done
 wait -f
 
 # **** GNU binutils (native) ****
